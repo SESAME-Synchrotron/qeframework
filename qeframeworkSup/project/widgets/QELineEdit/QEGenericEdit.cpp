@@ -129,6 +129,10 @@ void QEGenericEdit::connectionChanged( QCaConnectionInfo& connectionInfo,
    // using signal dbConnectionChanged.
    //
    emitDbConnectionChanged( variableIndex );
+  
+   // Check the option and then update widget's visual status.
+   this->setEnabled( connectionInfo.isChannelConnected() );
+   this->setText( ! connectionInfo.isChannelConnected() ? "N/A" : this->text() );
 }
 
 //------------------------------------------------------------------------------

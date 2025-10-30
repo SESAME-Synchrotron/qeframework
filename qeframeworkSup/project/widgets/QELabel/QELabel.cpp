@@ -48,6 +48,7 @@ QELabel::QELabel( const QString &variableNameIn, QWidget *parent ) :
 {
    setup();
    setVariableName( variableNameIn, PV_VARIABLE_INDEX );
+   establishConnection( 0 );
    activate();
 }
 
@@ -154,6 +155,9 @@ void QELabel::connectionChanged( QCaConnectionInfo& connectionInfo, const unsign
    // Signal channel connection change to any Link widgets,
    // using signal dbConnectionChanged.
    emitDbConnectionChanged( PV_VARIABLE_INDEX );
+   
+   this->setEnabled( connectionInfo.isChannelConnected() );
+   this->setText( ! connectionInfo.isChannelConnected() ? "N/A" : this->text() );
 }
 
 /*

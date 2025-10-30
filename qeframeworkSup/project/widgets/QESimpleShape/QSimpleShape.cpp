@@ -26,7 +26,7 @@ QSimpleShape::QSimpleShape (QWidget* parent) : QWidget (parent)
    //
    this->value = 0;
    this->modulus = NUMBER_OF_STATES;
-   this->shape = rectangle;
+   this->shape = circle;
    this->textFormat = FixedText;
    this->fixedText = "";
    this->alignment = Qt::AlignHCenter | Qt::AlignVCenter;
@@ -1258,6 +1258,40 @@ bool QSimpleShape::getFlashProperty (const int slot) const
       result = this->flashList [slot];
    }
    return result;
+}
+
+//------------------------------------------------------------------------------
+//
+void QSimpleShape::setLedType(LedType type)
+{
+   this->ledType = type;
+   if(type == Status)
+   {
+       this->setColour0Property( QColor(20, 60, 20) );
+       this->setColour1Property( QColor(5, 240, 5) );
+   }
+   else if(type == Error)
+   {
+       this->setColour0Property( QColor(60, 20, 20) );
+       this->setColour1Property( QColor(240, 5, 5) );
+   }
+   else if(type == Warning)
+   {
+       this->setColour0Property( QColor(60, 60, 20) );
+       this->setColour1Property( QColor(240, 240, 5) );
+   }
+   else
+   {
+       this->setColour0Property( QColor(20, 60, 20) );
+       this->setColour1Property( QColor(5, 240, 5) );
+   }
+
+   this->update();
+}
+
+QSimpleShape::LedType QSimpleShape::getLedType() const
+{
+   return this->ledType;
 }
 
 // end
