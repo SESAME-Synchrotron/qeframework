@@ -34,11 +34,12 @@ BUNDLE=
 # This is because QE_FRAMEWORK variable called up by the plugin project file.
 # However, on Linux the following works: QE_FRAMEWORK=$(shell readlink -f $(TOP) )
 #
-QE_FRAMEWORK=$(BUNDLE)/gui/qeframework
+QE_FRAMEWORK=$(QE_TARGET_DIR)
+QE_PVACCESS_SUPPORT=NO
 
 # Modify this to reference to __your__ local ACAI installation.
 # 
-ACAI=$(BUNDLE)/epics/acai
+ACAI=/opt/epics/acai
 
 # Modify this to reference to __your__ local AD Support installation.
 # Uncomment if needed; not required if PVAccess is not support defined.
@@ -48,7 +49,7 @@ ACAI=$(BUNDLE)/epics/acai
 # EPICS_BASE usually appears last so other apps can override stuff:
 # Modify this to reference to __your__ local EPICS base installation.
 #
-EPICS_BASE=$(BUNDLE)/epics/base
+EPICS_BASE=/opt/epics/base
 
 # These lines allow developers to override these RELEASE settings
 # without having to modify this file directly.

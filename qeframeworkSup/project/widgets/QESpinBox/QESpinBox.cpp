@@ -30,6 +30,7 @@
 
 #include "QESpinBox.h"
 #include <QLineEdit>
+#include <math.h>
 
 #define DEBUG qDebug () << "QESpinBox" << __LINE__ << __FUNCTION__ << "  "
 

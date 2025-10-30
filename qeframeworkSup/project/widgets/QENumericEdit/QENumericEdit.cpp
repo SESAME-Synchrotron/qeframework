@@ -713,7 +713,8 @@ void QENumericEdit::returnPressed ()
       return;
    }
 
-   if (this->writeOnEnter && this->isModified) {
+   // abdalla: This update allows setting the PV if the value did not change.
+   if (this->writeOnEnter /* && this->isModified */) {
       if (this->isOkayToWrite (woReturnPressed)) {
          this->writeNow ();
       }

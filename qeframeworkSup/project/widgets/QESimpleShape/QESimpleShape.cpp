@@ -94,7 +94,7 @@ void QESimpleShape::setup ()
    //
    this->setNumVariables (2);
    this->setVariableAsToolTip (true);
-   this->setDisplayAlarmStateOption (QE::Always);
+   this->setDisplayAlarmStateOption (QE::Never);
    this->setAllowDrop (false);
    this->setIsActive (false);
 
@@ -102,7 +102,9 @@ void QESimpleShape::setup ()
    // Widget is inactive until connected.
    //
    this->fillColour = this->getColor (invalid, 255);
-   this->edgeAlarmState = QE::Always;
+   this->edgeAlarmState = QE::Never;
+
+   this->setLedType(Status);
 
    // Use default context menu.
    //
@@ -294,6 +296,7 @@ void QESimpleShape::connectionChanged (QCaConnectionInfo & connectionInfo,
       // using signal dbConnectionChanged.
       //
       this->emitDbConnectionChanged (MAIN_PV_INDEX);
+      this->setEnabled( connectionInfo.isChannelConnected() );
    }
 
    if (variableIndex == EDGE_PV_INDEX) {
@@ -405,6 +408,17 @@ void QESimpleShape::setShapeValue (const QVariant& /* valueIn */, QCaAlarmInfo& 
    //
    if (variableIndex == MAIN_PV_INDEX) {
       this->emitDbValueChanged (MAIN_PV_INDEX);
+   }
+
+   if(alarmInfo.getSeverity() == INVALID_ALARM)
+   {
+      this->setEdgeWidth(2);
+      this->setEdgeColour(this->getColor (alarmInfo, 255));
+   }
+   else
+   {
+      this->setEdgeWidth(1);
+      this->setEdgeColour(Qt::black);
    }
 }
 
