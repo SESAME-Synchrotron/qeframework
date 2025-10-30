@@ -40,6 +40,15 @@ public:
                  roundpie, pie, heart };
    Q_ENUM (Shapes)
 
+   enum LedType { Status, Error, Warning };
+   void setLedType (LedType type);
+   LedType getLedType () const;
+   Q_ENUMS (LedType)
+
+   /// Selected Led Type
+   ///
+   Q_PROPERTY(LedType ledType READ getLedType WRITE setLedType)
+
    /// Nominated shape
    ///
    Q_PROPERTY (Shapes shape       READ getShape       WRITE setShape)
@@ -307,6 +316,7 @@ private:
    bool isActive;
    int value;
    int modulus;
+   LedType ledType;
 
 private slots:
    void flashTimeout (const bool);
