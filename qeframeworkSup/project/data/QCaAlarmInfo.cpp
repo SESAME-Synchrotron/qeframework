@@ -40,14 +40,14 @@ const QStringList defaultStyleColorNames = QStringList ()
       << "#e0eee0"                // pale green
       << "#ffff00"                // yellow
       << "#ff8080"                // pale red
-      << "#ffffff"                // white
+      << "#ff00ff"                // white
       << "#80c0ff";               // pale blue
 
 const QStringList defaultColorNames = QStringList ()
       << "#00ff00"                // green
       << "#ffff00"                // yellow
       << "#ff0000"                // red
-      << "#ffffff"                // white
+      << "#ff00ff"                // white
       << "#0080ff";               // blue
 
 
@@ -263,7 +263,13 @@ QString QCaAlarmInfo::style () const
       case NO_ALARM:
       case MINOR_ALARM:
       case MAJOR_ALARM:
+          result = QString( "QWidget { background-color: %1; }" ).arg( styleColor );
+          break;
+
       case INVALID_ALARM:
+          result = QString( "QWidget { border: 2px solid %1; }" ).arg( styleColor );
+          break;
+
       case OOS_ALARM:
          // colourToStyle sets the font color to white or black as appropriate.
          //
