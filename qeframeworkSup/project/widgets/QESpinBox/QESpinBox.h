@@ -14,6 +14,7 @@
 #ifndef QE_SPIN_BOX_H
 #define QE_SPIN_BOX_H
 
+#include <cmath>
 #include <QDoubleSpinBox>
 #include <QEEnums.h>
 #include <QEWidget.h>
