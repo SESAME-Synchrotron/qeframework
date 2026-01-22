@@ -3,7 +3,7 @@
  *  This file is part of the EPICS QT Framework, initially developed at the
  *  Australian Synchrotron.
  *
- *  SPDX-FileCopyrightText: 2015-2025 Australian Synchrotron
+ *  SPDX-FileCopyrightText: 2015-2026 Australian Synchrotron
  *  SPDX-License-Identifier: LGPL-3.0-only
  *
  *  Author:     Andrew Starritt
@@ -22,8 +22,10 @@
 
 #include <QDebug>
 #include <QString>
+#include <QTimeZone>
 
-// TODO check for QT 5.X and use inbuilt functions.
+#define DEBUG qDebug() << "QEPlatform" << __LINE__ << __FUNCTION__ << "  "
+
 
 QEPlatform::QEPlatform () { }
 QEPlatform::~QEPlatform () { }
@@ -70,6 +72,61 @@ QPoint QEPlatform::positionOf (QMouseEvent* event)
       result = event->position().toPoint();
 #endif
    }
+   return result;
+}
+
+//------------------------------------------------------------------------------
+//
+QDateTime QEPlatform::constructEpoch (const int year)
+{
+   QDateTime result;
+#if QT_VERSION < 0x060500
+   result = QDateTime (QDate (year, 1, 1), QTime (0, 0, 0), Qt::UTC);
+#else
+   const QTimeZone zone (QTimeZone::UTC);
+   result = QDateTime (QDate (year, 1, 1), QTime (0, 0, 0), zone);
+#endif
+   return result;
+}
+
+//------------------------------------------------------------------------------
+//
+void QEPlatform::setTimeZone (QDateTime& dateTime, const Qt::TimeSpec timeSpec)
+{
+   if ((timeSpec != Qt::UTC) && (timeSpec != Qt::LocalTime)) {
+      DEBUG << "Unexpected time spec" << timeSpec << "ignored.";
+      return;
+   }
+
+#if QT_VERSION < 0x060500
+   dateTime.setTimeSpec (timeSpec);
+#else
+   // Currently Qt::TimeSpec and QTimeZone::Initialization values are numerically
+   // the same; howver that cound change/
+   //
+   const QTimeZone::Initialization init = (timeSpec == Qt::UTC) ? QTimeZone::UTC : QTimeZone::LocalTime;
+   QTimeZone zone (init);
+   dateTime.setTimeZone (zone);
+#endif
+}
+
+//------------------------------------------------------------------------------
+//
+QDateTime QEPlatform::toTimeZone (const QDateTime& dateTime,
+                                  const Qt::TimeSpec timeSpec)
+{
+   if ((timeSpec != Qt::UTC) && (timeSpec != Qt::LocalTime)) {
+      DEBUG << "Unexpected time spec" << timeSpec << "ignored.";
+      return dateTime;   // unchanged
+   }
+
+   QDateTime result;
+   if (timeSpec == Qt::UTC) {
+      result = dateTime.toUTC();
+   } else {
+      result = dateTime.toLocalTime();
+   }
+
    return result;
 }
 

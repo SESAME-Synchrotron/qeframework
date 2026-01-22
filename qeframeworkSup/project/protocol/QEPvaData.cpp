@@ -3,7 +3,7 @@
  *  This file is part of the EPICS QT Framework, initially developed at the
  *  Australian Synchrotron.
  *
- *  SPDX-FileCopyrightText: 2018-2025 Australian Synchrotron
+ *  SPDX-FileCopyrightText: 2018-2026 Australian Synchrotron
  *  SPDX-License-Identifier: LGPL-3.0-only
  *
  *  Author:     Andrew Starritt
@@ -34,7 +34,22 @@
 #include <QENTNDArrayData.h>
 #include <QEOpaqueData.h>
 
+
 #define DEBUG qDebug() << "QEPvaData" << __LINE__ << __FUNCTION__ << "  "
+
+//------------------------------------------------------------------------------
+// Essentially != however caters for NaN values.
+// By defn, NaN is != NaN. which is not what we want.
+//
+static bool hasChanged (const double self, const double other)
+{
+   // If both NaN then considered unchanged, i.e. quazi equal.
+   // We don't seem to need to worry about infinites.
+   //
+   if (QEPlatform::isNaN (self) && QEPlatform::isNaN (other)) return false;
+
+   return self != other;
+}
 
 //------------------------------------------------------------------------------
 //
@@ -57,9 +72,12 @@ QEPvaData::Enumerated::~Enumerated () { } // place holder
 
 //------------------------------------------------------------------------------
 //
-void QEPvaData::Enumerated::assign (const Enumerated& other)
+void QEPvaData::Enumerated::assign (const Enumerated& other, bool& isMetaUpdate)
 {
    if (other.isDefined) {
+      isMetaUpdate = isMetaUpdate ||
+                     (!this->isDefined) ||
+                     (this->choices != other.choices);
       *this = other;
    } else {
       this->isDefined = false;
@@ -136,9 +154,16 @@ QEPvaData::Display::~Display () { } // place holder
 
 //------------------------------------------------------------------------------
 //
-void QEPvaData::Display::assign (const Display& other)
+void QEPvaData::Display::assign (const Display& other, bool& isMetaUpdate)
 {
    if (other.isDefined) {
+      isMetaUpdate = isMetaUpdate ||
+                     (!this->isDefined) ||
+                     hasChanged (this->limitLow, other.limitLow) ||
+                     hasChanged (this->limitHigh, other.limitHigh) ||
+                     (this->description != other.description) ||
+                     (this->units != other.units) ||
+                     (this->precision != other.precision);
       *this = other;
    } else {
       this->isDefined = false;
@@ -164,9 +189,13 @@ QEPvaData::Control::~Control () { } // place holder
 
 //------------------------------------------------------------------------------
 //
-void QEPvaData::Control::assign (const Control& other)
+void QEPvaData::Control::assign (const Control& other, bool& isMetaUpdate)
 {
    if (other.isDefined) {
+      isMetaUpdate = isMetaUpdate ||
+                     (!this->isDefined) ||
+                     hasChanged (this->limitLow, other.limitLow) ||
+                     hasChanged (this->limitHigh, other.limitHigh);
       *this = other;
    } else {
       this->isDefined = false;
@@ -197,9 +226,19 @@ QEPvaData::ValueAlarm::~ValueAlarm () { } // place holder
 
 //------------------------------------------------------------------------------
 //
-void QEPvaData::ValueAlarm::assign (const ValueAlarm& other)
+void QEPvaData::ValueAlarm::assign (const ValueAlarm& other, bool& isMetaUpdate)
 {
    if (other.isDefined) {
+      isMetaUpdate = isMetaUpdate ||
+                     (!this->isDefined) ||
+                     hasChanged (this->lowAlarmLimit, other.lowAlarmLimit) ||
+                     hasChanged (this->lowWarningLimit, other.lowWarningLimit) ||
+                     hasChanged (this->highWarningLimit, other.highWarningLimit) ||
+                     hasChanged (this->highAlarmLimit, other.highAlarmLimit) ||
+                     (this->lowAlarmSeverity!= other.lowAlarmSeverity) ||
+                     (this->lowWarningSeverity != other.lowWarningSeverity) ||
+                     (this->highWarningSeverity != other.highWarningSeverity) ||
+                     (this->highAlarmSeverity != other.highAlarmSeverity);
       *this = other;
    } else {
       this->isDefined = false;
@@ -286,6 +325,7 @@ bool QEPvaData::extractValue (PVStructureSharedPtr& pv,
 
 
    } else if (epics::nt::NTTable::is_a (pv)) {
+
       epics::nt::NTTable::const_shared_pointer item = epics::nt::NTTable::wrap (pv);
       ASSERT (item.get() != NULL, "NTTable::wrap yielded null");
 
@@ -300,7 +340,7 @@ bool QEPvaData::extractValue (PVStructureSharedPtr& pv,
 
 
    } else if (epics::nt::NTNDArray::is_a (pv)) {
-      epics::nt::NTNDArray::const_shared_pointer item = epics::nt::NTNDArray::wrap (pv);
+      epics::nt::NTNDArrayPtr item = epics::nt::NTNDArray::wrap (pv);
       ASSERT (item.get() != NULL, ":NTNDArray::wrap yielded null");
       // This is a NTNDArray/image type.
       //
@@ -1055,14 +1095,19 @@ bool QEPvaData::Alarm::extract (const PVStructureConstPtr& pv)
 
 //------------------------------------------------------------------------------
 // static
-bool QEPvaData::Display::extract (const PVStructureConstPtr& pv)
+bool QEPvaData::Display::extract (const PVStructureConstPtr& pv,
+                                  const QString& identity)
 {
+   const bool isNTNDArray = identity.startsWith ("epics:nt/NTNDArray");
+
    ASSIGN_STRUCT (display, display);
    ASSIGN_MEMBER (display, limitLow,    pvd::PVDouble, double);
    ASSIGN_MEMBER (display, limitHigh,   pvd::PVDouble, double);
    ASSIGN_MEMBER (display, description, pvd::PVString, QString::fromStdString);
    ASSIGN_MEMBER (display, units,       pvd::PVString, QString::fromStdString);
-   ASSIGN_MEMBER (display, precision,   pvd::PVInt,    int);
+   if (!isNTNDArray) {
+      ASSIGN_MEMBER (display, precision,   pvd::PVInt,    int);
+   }
    // format replaced by form - TBD
    this->isDefined = true;
    return true;

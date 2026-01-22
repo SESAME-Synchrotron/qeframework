@@ -3,7 +3,7 @@
  *  This file is part of the EPICS QT Framework, initially developed at the
  *  Australian Synchrotron.
  *
- *  SPDX-FileCopyrightText: 2015-2025 Australian Synchrotron
+ *  SPDX-FileCopyrightText: 2015-2026 Australian Synchrotron
  *  SPDX-License-Identifier: LGPL-3.0-only
  *
  *  Author:     Andrew Starritt
@@ -16,6 +16,7 @@
 
 #include <Qt>
 #include <QtGlobal>
+#include <QDateTime>
 #include <QDropEvent>
 #include <QMetaType>
 #include <QMouseEvent>
@@ -40,6 +41,18 @@ public:
    ///
    static QPoint positionOf (QDropEvent* event);
    static QPoint positionOf (QMouseEvent* event);
+
+   /// Construct an epoch date time, always Jan 1st 00:00:00
+   ///
+   static QDateTime constructEpoch (const int year);
+
+   /// Changes the time zone to UTC or LocalTime only.
+   ///
+   static void setTimeZone (QDateTime& dateTime, const Qt::TimeSpec timeSpec);
+
+   /// This converts the actual time to UTC or LocalTime.
+   ///
+   static QDateTime toTimeZone (const QDateTime& dateTime, const Qt::TimeSpec timeSpec);
 
    /// This function test if the specified double floating point number is 'Not a Number'.
    static bool isNaN (const double x);

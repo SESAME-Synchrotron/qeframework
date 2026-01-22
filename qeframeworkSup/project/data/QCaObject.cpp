@@ -3,7 +3,7 @@
  *  This file is part of the EPICS QT Framework, initially developed at the
  *  Australian Synchrotron.
  *
- *  SPDX-FileCopyrightText: 2009-2025 Australian Synchrotron
+ *  SPDX-FileCopyrightText: 2009-2026 Australian Synchrotron
  *  SPDX-License-Identifier: LGPL-3.0-only
  *
  *  Author:     Anthony Owen
@@ -67,32 +67,32 @@ int* QCaObject::getConnectedCountRef()
 // In other words, the event object does not need to be set up in any way.
 // It just need to have a suitable event loop running.
 //
-QCaObject::QCaObject (const QString& newRecordName,
+QCaObject::QCaObject (const QString& newPvName,
                       QObject* parent,
                       const unsigned int variableIndexIn,
                       SignalsToSendFlags signalsToSendIn,
                       priorities priorityIn) : QObject (parent)
 {
-   this->initialise (newRecordName, variableIndexIn, NULL,
+   this->initialise (newPvName, variableIndexIn, NULL,
                      signalsToSendIn, priorityIn);
 }
 
 //------------------------------------------------------------------------------
 //
-QCaObject::QCaObject (const QString& newRecordName,
+QCaObject::QCaObject (const QString& newPvName,
                       QObject* parent,
                       const unsigned int variableIndexIn,
                       UserMessage* userMessageIn,
                       SignalsToSendFlags signalsToSendIn,
                       priorities priorityIn) : QObject (parent)
 {
-   this->initialise (newRecordName, variableIndexIn, userMessageIn,
+   this->initialise (newPvName, variableIndexIn, userMessageIn,
                      signalsToSendIn, priorityIn);
 }
 
 //------------------------------------------------------------------------------
 //
-void QCaObject::initialise (const QString& newRecordName,
+void QCaObject::initialise (const QString& newPvName,
                             const unsigned int variableIndexIn,
                             UserMessage* userMessageIn,
                             SignalsToSendFlags signalsToSendIn,
@@ -103,7 +103,7 @@ void QCaObject::initialise (const QString& newRecordName,
    this->client = NULL;
 
    // Allocate a new object identity for this QCaObject.
-   // We do not worry about wrap arround.
+   // We do not worry about wrap arround (it has ~1E19 values).
    //
    this->objectIdentity = ++QCaObject::nextObjectIdentity;
 
@@ -111,7 +111,7 @@ void QCaObject::initialise (const QString& newRecordName,
 
    // Note the record required name and associated index.
    //
-   this->recordName = newRecordName;
+   this->processVariableName = newPvName;
    this->variableIndex = variableIndexIn;
    this->userMessage = userMessageIn;
    this->signalsToSend = signalsToSendIn;
@@ -120,40 +120,28 @@ void QCaObject::initialise (const QString& newRecordName,
    // If not specified, the 'ca://' Channel Access protocol is the default.
    //
    QEPvNameUri uri;
-   const bool decodeOkay = uri.decodeUri (newRecordName, /* strict=> */ false);
+   const bool decodeOkay = uri.decodeUri (newPvName, /* strict=> */ false);
    if (!decodeOkay) {
-      DEBUG << "PV protocol identification failed for:" << newRecordName;
+      DEBUG << "PV protocol identification failed for:" << newPvName;
       // See comment below
-      this->client = new QENullClient (newRecordName, this);
+      this->client = new QENullClient (newPvName, this);
       return;
    }
 
    const QEPvNameUri::Protocol protocol = uri.getProtocol ();
    const QString pvName = uri.getPvName ();
 
-   QECaClient* caClient;
+   QECaClient* caClient = NULL;
 
    switch (protocol) {
 
       case QEPvNameUri::ca:
          this->client = caClient = new QECaClient (pvName, this);
          caClient->setPriority (int (priorityIn));
-         QObject::connect (this->client, SIGNAL (connectionUpdated (const bool)),
-                           this,         SLOT   (connectionUpdate  (const bool)));
-         QObject::connect (this->client, SIGNAL (dataUpdated (const bool)),
-                           this,         SLOT   (dataUpdate  (const bool)));
-         QObject::connect (this->client, SIGNAL (putCallbackComplete    (const bool)),
-                           this,         SLOT   (putCallbackNotifcation (const bool)));
          break;
 
       case QEPvNameUri::pva:
          this->client = new QEPvaClient (pvName, this);
-         QObject::connect (this->client, SIGNAL (connectionUpdated (const bool)),
-                           this,         SLOT   (connectionUpdate  (const bool)));
-         QObject::connect (this->client, SIGNAL (dataUpdated (const bool)),
-                           this,         SLOT   (dataUpdate  (const bool)));
-         QObject::connect (this->client, SIGNAL (putCallbackComplete    (const bool)),
-                           this,         SLOT   (putCallbackNotifcation (const bool)));
          break;
 
       default:
@@ -169,7 +157,17 @@ void QCaObject::initialise (const QString& newRecordName,
          this->client = new QENullClient (pvName, this);
    }
 
+   // Do the plumbing.
+   //
+   QObject::connect (this->client, SIGNAL (connectionUpdated (const bool)),
+                     this,         SLOT   (connectionUpdate  (const bool)));
+   QObject::connect (this->client, SIGNAL (dataUpdated (const bool)),
+                     this,         SLOT   (dataUpdate  (const bool)));
+   QObject::connect (this->client, SIGNAL (putCallbackComplete    (const bool)),
+                     this,         SLOT   (putCallbackNotifcation (const bool)));
+
    // Setup any the mechanism to handle messages to the user, if supplied
+   //
    this->setUserMessage (userMessageIn);
 
    // Update counters. Ensure consistant
@@ -260,7 +258,7 @@ void QCaObject::clearConnectionState()
    //  The connection has gone from 'no connection' to 'not connectet yet')
    //
    QCaConnectionInfo connectionInfo (QCaConnectionInfo::NEVER_CONNECTED,
-                                     this->getRecordName());
+                                     this->getPvName());
 
    QEConnectionUpdate connection;
    connection.connectionInfo = connectionInfo;
@@ -358,7 +356,7 @@ bool QCaObject::getDataIsAvailable() const
 }
 
 //------------------------------------------------------------------------------
-// Indicates if last data is defined/meaningful.
+// Indicates if last update was a meta data update.
 //
 bool QCaObject::getIsMetaDataUpdate () const
 {
@@ -539,11 +537,19 @@ QCaObject::ObjectIdentity QCaObject::getObjectIdentity () const
 }
 
 //------------------------------------------------------------------------------
+// Return the process variable name.
+//
+QString QCaObject::getPvName() const
+{
+   return this->processVariableName;
+}
+
+//------------------------------------------------------------------------------
 // Return the record name (technically the process variable name).
 //
 QString QCaObject::getRecordName() const
 {
-   return this->recordName;
+   return this->processVariableName;
 }
 
 //------------------------------------------------------------------------------
@@ -772,11 +778,11 @@ void QCaObject::connectionUpdate (const bool isConnected)
 
    if (isConnected) {
       connectionInfo = QCaConnectionInfo (QCaConnectionInfo::CONNECTED,
-                                          this->recordName);
+                                          this->processVariableName);
       QCaObject::connectedCount++;
    } else {
       connectionInfo = QCaConnectionInfo (QCaConnectionInfo::CLOSED,
-                                          this->recordName);
+                                          this->processVariableName);
       QCaObject::connectedCount--;
    }
 
@@ -794,59 +800,41 @@ void QCaObject::connectionUpdate (const bool isConnected)
 //------------------------------------------------------------------------------
 // New data available - emit to awaiting objects.
 //
-void QCaObject::dataUpdate (const bool firstUpdateIn)
+void QCaObject::dataUpdate (const bool isMetaUpdateIn)
 {
-   static const char* varSignal = SIGNAL (valueUpdated (const QEVariantUpdate&));
-   static const char* byteSignal = SIGNAL (arrayUpdated (const QEByteArrayUpdate&));
-
-   // Older - to be deprecated
-   //
-   static const char* varSignalOld =
-         SIGNAL (dataChanged (const QVariant&, QCaAlarmInfo&,
-                              QCaDateTime&, const unsigned int&));
-
-   static const char* byteSignalOld =
-         SIGNAL (dataChanged (const QByteArray&, unsigned long, QCaAlarmInfo&,
-                              QCaDateTime&, const unsigned int&));
-
-   QCaAlarmInfo alarmInfo;
-   QCaDateTime timeStamp;
-
    if (!this->client) return;   // sanity check
 
-   alarmInfo = this->client->getAlarmInfo ();
-   timeStamp = this->client->getTimeStamp ();
+   // We need non-const copies, at least for now, for old style signals.
+   //
+   QCaAlarmInfo alarmInfo = this->client->getAlarmInfo ();
+   QCaDateTime timeStamp = this->client->getTimeStamp ();
 
-   this->isFirstMetaUpdate = firstUpdateIn;
+   this->isFirstMetaUpdate = isMetaUpdateIn;
 
    if (this->signalsToSend & SIG_VARIANT) {
-      // Only form variant and emit signal if at least one receiver.
-      //
-      int number = this->receivers (varSignal) + this->receivers (varSignalOld);
-      if (number > 0) {
-         QVariant variantValue = this->getVariant ();
+      // Only form variant and emit signal if a varient has been requested.
+      const QVariant variantValue = this->getVariant ();
 
-         QEVariantUpdate valueUpdate;
-         valueUpdate.value = variantValue;
-         valueUpdate.alarmInfo = alarmInfo;
-         valueUpdate.timeStamp = timeStamp;
-         valueUpdate.variableIndex = variableIndex;
-         emit valueUpdated (valueUpdate);
-         emit dataChanged (variantValue, alarmInfo, timeStamp, this->variableIndex);
-      }
+      QEVariantUpdate valueUpdate;
+      valueUpdate.value = variantValue;
+      valueUpdate.alarmInfo = alarmInfo;
+      valueUpdate.timeStamp = timeStamp;
+      valueUpdate.variableIndex = variableIndex;
+      valueUpdate.isMetaUpdate = isMetaUpdateIn;
+
+      emit valueUpdated (valueUpdate);
+      emit dataChanged (variantValue, alarmInfo, timeStamp, this->variableIndex);
    }
 
    if (this->signalsToSend & SIG_BYTEARRAY) {
-      // Only form byte array and emit signal if at least one receiver.
+      // Only form byte array and emit signal if byte array has been requested.
       //
-      int number = this->receivers (byteSignal) + this->receivers (byteSignalOld);
-      if (number > 0) {
-         QByteArray byteArrayValue = this->getByteArray ();
-         unsigned long dataSize = 0;
-         QECaClient* caClient = this->asCaClient();
-         if (caClient) {
-            dataSize = caClient->getDataElementSize ();
-         }
+      const QByteArray byteArrayValue = this->getByteArray ();
+      const unsigned dataSize = this->getDataElementSize ();
+
+      // Did we manage to actually extract a byte array?
+      //
+      if ((byteArrayValue.size() > 0) && (dataSize > 0)) {
 
          QEByteArrayUpdate arrayUpdate;
          arrayUpdate.array = byteArrayValue;
@@ -854,9 +842,10 @@ void QCaObject::dataUpdate (const bool firstUpdateIn)
          arrayUpdate.alarmInfo = alarmInfo;
          arrayUpdate.timeStamp = timeStamp;
          arrayUpdate.variableIndex = variableIndex;
+         arrayUpdate.isMetaUpdate = isMetaUpdateIn;
 
-         emit arrayUpdated (arrayUpdate);
-         emit dataChanged (byteArrayValue, dataSize, alarmInfo, timeStamp, this->variableIndex);
+         emit byteArrayUpdated (arrayUpdate);
+         emit byteArrayChanged (byteArrayValue, dataSize, alarmInfo, timeStamp, this->variableIndex);
       }
    }
 }
@@ -866,7 +855,7 @@ void QCaObject::dataUpdate (const bool firstUpdateIn)
 //
 void QCaObject::putCallbackNotifcation( const bool isSuccessful )
 {
-   qDebug () << __FUNCTION__ << this->getRecordName() << isSuccessful;
+   qDebug () << __FUNCTION__ << this->getPvName() << isSuccessful;
 }
 
 //------------------------------------------------------------------------------
@@ -881,16 +870,38 @@ QVariant QCaObject::getVariant () const
 //
 QByteArray QCaObject::getByteArray() const
 {
+   const QVariant value = this->getVariant ();
+   const bool isVector = QEVectorVariants::isVectorVariant (value);
+
    QByteArray result;
 
-   /// NOTE: Doesn't apply to PVA data yet - return an empty array.
+   // We expect this to be one of the vector variant.
+   // If not return an empty array.
    //
-   QECaClient* caClient = this->asCaClient();
-   if (caClient) {
-      size_t count = 0;
-      const char* rawData = (const char *) caClient->getRawDataPointer(count);
-      result.append (rawData, (int) count);
+   if (isVector) {
+      bool okay;
+      result = QEVectorVariants::getAsByteArray (value, okay);
    }
+
+   return result;
+}
+
+//------------------------------------------------------------------------------
+//
+unsigned QCaObject::getDataElementSize () const
+{
+   const QVariant value = this->getVariant ();
+   const bool isVector = QEVectorVariants::isVectorVariant (value);
+
+   unsigned result = 0;
+
+   // We expect this to be one of the vector variant.
+   // If not return 0.
+   //
+   if (isVector) {
+      result = QEVectorVariants::getElementSize (value);
+   }
+
    return result;
 }
 

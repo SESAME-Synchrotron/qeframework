@@ -3,7 +3,7 @@
  *  This file is part of the EPICS QT Framework, initially developed at the
  *  Australian Synchrotron.
  *
- *  SPDX-FileCopyrightText: 2009-2025 Australian Synchrotron
+ *  SPDX-FileCopyrightText: 2009-2026 Australian Synchrotron
  *  SPDX-License-Identifier: LGPL-3.0-only
  *
  *  Author:     Anthony Owen
@@ -46,21 +46,25 @@ struct QEVariantUpdate {
    QCaAlarmInfo alarmInfo;
    QCaDateTime timeStamp;
    unsigned int variableIndex;
+   bool isMetaUpdate;
 };
 Q_DECLARE_METATYPE (QEVariantUpdate)
 
 struct QEByteArrayUpdate {
    QByteArray array;
-   unsigned long dataElementSize;
    QCaAlarmInfo alarmInfo;
    QCaDateTime timeStamp;
+   unsigned int dataElementSize;
    unsigned int variableIndex;
+   bool isMetaUpdate;
 };
 Q_DECLARE_METATYPE (QEByteArrayUpdate)
 
 
-// TODO: Consider renameing QCaObject to something more vanilla (e.g. QEClient)
-// and dropping the name space and that not used anywhere else in the framework.
+// A qcaobject::QCaObject alias, QEChannel, has been created which has a more
+// vanilla and drops the namespace. New users should use QEChannel.
+// At sometime the roles of QEChannel and qcaobject::QCaObject will be dropped
+// and eventually the latter dropped altogether.
 //
 namespace qcaobject {
 
@@ -88,12 +92,12 @@ public:
    static int* getDisconnectedCountRef();
    static int* getConnectedCountRef();
 
-   QCaObject( const QString& recordName, QObject *parent,
+   QCaObject( const QString& pvName, QObject *parent,
               const unsigned int variableIndex,
               SignalsToSendFlags signalsToSend=SIG_VARIANT,
               priorities priorityIn=QE_PRIORITY_NORMAL );
 
-   QCaObject( const QString& recordName, QObject *parent,
+   QCaObject( const QString& pvName, QObject *parent,
               const unsigned int variableIndex,
               UserMessage* userMessageIn,
               SignalsToSendFlags signalsToSend=SIG_VARIANT,
@@ -107,7 +111,7 @@ public:
 
    // Allow dynamic modification of the signals to send.
    void setSignalsToSend (const SignalsToSendFlags signalsToSend);
-   SignalsToSendFlags getSignalsToSend () const;
+   QCaObject::SignalsToSendFlags getSignalsToSend () const;
 
    bool subscribe();        // open channel and subscribe
    bool singleShotRead();   // open channel and initiate a single read
@@ -128,8 +132,12 @@ public:
 
    void setRequestedElementCount( unsigned int elementCount );
 
-   // Get database information relating to the variable
+   // Get database information relating to the variable   
+   QString getPvName() const;
+
+   QT_DEPRECATED_X("use getPvName instead")
    QString getRecordName() const;
+
    QString getEgu() const;
    QStringList getEnumerations() const;
    unsigned int getPrecision() const;
@@ -210,14 +218,14 @@ public:
    ObjectIdentity getObjectIdentity () const;
 
 signals:
-   void connectionUpdated (const QEConnectionUpdate& connection);
-   void valueUpdated (const QEVariantUpdate& value);
-   void arrayUpdated (const QEByteArrayUpdate& array);
+   void connectionUpdated (const QEConnectionUpdate&);
+   void valueUpdated (const QEVariantUpdate&);
+   void byteArrayUpdated (const QEByteArrayUpdate&);
 
    // Deprecated - use above.
    //
-   void dataChanged( const QVariant& value, QCaAlarmInfo& alarmInfo, QCaDateTime& timeStamp, const unsigned int& variableIndex );
-   void dataChanged( const QByteArray& value, unsigned long dataSize, QCaAlarmInfo& alarmInfo, QCaDateTime& timeStamp, const unsigned int& variableIndex );
+   void dataChanged( const QVariant&, QCaAlarmInfo&, QCaDateTime&, const unsigned int& );
+   void byteArrayChanged( const QByteArray&, unsigned long, QCaAlarmInfo&, QCaDateTime&, const unsigned int& );
    void connectionChanged( QCaConnectionInfo& connectionInfo, const unsigned int& variableIndex );
 
 public slots:
@@ -247,7 +255,7 @@ private:
    //
    void clearConnectionState();
 
-   QString recordName;
+   QString processVariableName;
    unsigned int variableIndex; // The variable index within a widget. If not used within a widget, can hold arbitary number.
    UserMessage* userMessage;
    SignalsToSendFlags signalsToSend;
@@ -260,6 +268,7 @@ private:
 
    QVariant getVariant () const;
    QByteArray getByteArray () const;
+   unsigned getDataElementSize () const;
 
    quint64 objectIdentity;   // this object's identity
    static ObjectIdentity nextObjectIdentity;
@@ -280,10 +289,6 @@ private slots:
 };
 
 }    // end qcaobject namespace
-
-// Prepare for transition to new name
-//
-typedef qcaobject::QCaObject QEChannel;
 
 Q_DECLARE_OPERATORS_FOR_FLAGS (qcaobject::QCaObject::SignalsToSendFlags)
 

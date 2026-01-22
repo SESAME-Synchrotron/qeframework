@@ -3,7 +3,7 @@
  *  This file is part of the EPICS QT Framework, initially developed at the
  *  Australian Synchrotron.
  *
- *  SPDX-FileCopyrightText: 2012-2025 Australian Synchrotron
+ *  SPDX-FileCopyrightText: 2012-2026 Australian Synchrotron
  *  SPDX-License-Identifier: LGPL-3.0-only
  *
  *  Author:     Andrew Rhyder
@@ -33,6 +33,7 @@
 #include <applicationLauncher.h>
 #include "imageDataFormats.h"
 
+#include <QEChannel.h>
 #include <QEStringFormatting.h>
 #include <QEFrameworkLibraryGlobal.h>
 #include <QEIntegerFormatting.h>
@@ -193,8 +194,8 @@ public:
 public:
     // Property convenience functions
 
-    void setBitDepth( unsigned int bitDepthIn );                        ///< Access function for #bitDepth property - refer to #bitDepth property for details
-    unsigned int getBitDepth();                                         ///< Access function for #bitDepth property - refer to #bitDepth property for details
+    void setBitDepth( int bitDepthIn );                                 ///< Access function for #bitDepth property - refer to #bitDepth property for details
+    int getBitDepth();                                                  ///< Access function for #bitDepth property - refer to #bitDepth property for details
 
     void setFormatOption( QE::ImageFormatOptions formatOption );        ///< Access function for #formatOption property - refer to #formatOption property for details
     QE::ImageFormatOptions getFormatOption();                           ///< Access function for #formatOption property - refer to #formatOption property for details
@@ -577,21 +578,28 @@ protected:
     void redisplayAllMarkups();
 
 public slots:
-    // MPEG data update slots (and maybe other non CA sources)
+    // MPEG data update slots (and maybe other non CA sources).
+    //
     void setDataImage( const QByteArray& imageIn,
                        unsigned long dataSize, unsigned long elements,
                        unsigned long width, unsigned long height,
                        QE::ImageFormatOptions format, unsigned int depth );
 
-    // PV Access Image/NDArray data update slot
-    void setPvaImage( const QVariant& value,
-                      QCaAlarmInfo& alarmInfo,
-                      QCaDateTime& timeStamp,
-                      const unsigned int& variableIndex );
+    // PV Access Image/NDArray data update slot.
+    //
+    void setPvaImage( const QEVariantUpdate& update );
 
-    // Channel Access Image/NDArray data update slot
-    void setImage( const QByteArray& image, unsigned long dataSize,
-                   QCaAlarmInfo&, QCaDateTime&, const unsigned int& );
+    // Channel Access Image ata update slot.
+    //
+    void setByteArrayImage( const QEByteArrayUpdate& update );
+
+    // Called by the other slot functions.
+    //
+    void setImage( const QByteArray& image,
+                   unsigned long dataSize,
+                   const QCaAlarmInfo&,
+                   const QCaDateTime&,
+                   const unsigned int& );
 
     void connectionChanged( QCaConnectionInfo& connectionInfo, const unsigned int& variableIndex);
 
@@ -783,11 +791,10 @@ private:
     void restoreConfiguration (PersistanceManager* pm, restorePhases restorePhase);
 
     void setup();
-    qcaobject::QCaObject* createQcaItem( unsigned int variableIndex );
+    QEChannel* createQcaItem( unsigned int variableIndex );
 
     QCAALARMINFO_SEVERITY lastSeverity;
     bool isConnected;
-    bool isFirstImageUpdate;
 
     bool imageSizeSet;      // Flag the video widget size has been set (setImageSize() has been called and done something)
     void setImageSize();    // Set the video widget size so it will match the processed image.
@@ -1496,7 +1503,7 @@ public:
     /// Bit depth.
     /// Note, EPICS data type size will typically be adequate for the number of bits required (one byte for up to 8 bits, 2 bytes for up to 16 bits, etc),
     /// but can be larger (for example, 4 bytes for 24 bits) and may be larger than nessesary (4 bytes for 8 bits).
-    Q_PROPERTY(unsigned int bitDepth READ getBitDepthProperty WRITE setBitDepthProperty)
+    Q_PROPERTY(int bitDepth READ getBitDepthProperty WRITE setBitDepthProperty)
 
     void setBitDepthProperty( unsigned int bitDepth ){ setBitDepth( bitDepth ); }                                           ///< Access function for #bitDepth property - refer to #bitDepth property for details
     unsigned int getBitDepthProperty(){ return getBitDepth(); }                                                             ///< Access function for #bitDepth property - refer to #bitDepth property for details

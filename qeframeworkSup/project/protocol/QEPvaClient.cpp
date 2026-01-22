@@ -3,7 +3,7 @@
  *  This file is part of the EPICS QT Framework, initially developed at the
  *  Australian Synchrotron.
  *
- *  SPDX-FileCopyrightText: 2018-2025 Australian Synchrotron
+ *  SPDX-FileCopyrightText: 2018-2026 Australian Synchrotron
  *  SPDX-License-Identifier: LGPL-3.0-only
  *
  *  Author:     Andrew Starritt
@@ -384,8 +384,16 @@ void QEPvaMonitorRequesterInterface::processElement (pva::MonitorElement::const_
    //
    QVariant value;
    QString type;
-   const bool status = QEPvaData::extractValue (pv, value, type);
-   if(!status) {
+   bool status;
+
+   try {
+      status = QEPvaData::extractValue (pv, value, type);
+   } catch (std::exception& e) {
+      DEBUG << this->pvName << "exception" << e.what();
+      return;
+   }
+
+   if (!status) {
       DEBUG << this->pvName << this->uniqueId() << "cannot extract value from" << pvIdentity;
       return;
    }
@@ -402,7 +410,7 @@ void QEPvaMonitorRequesterInterface::processElement (pva::MonitorElement::const_
    item->timeStamp.extract (pv);
    item->alarm.extract (pv);
    item->control.extract (pv);
-   item->display.extract (pv );
+   item->display.extract (pv, pvIdentity);
    item->valueAlarm.extract (pv);
 
    // We have copied all the element data.
@@ -946,6 +954,7 @@ void QEPvaClient::processUpdate (QEPvaClient::Update* update)
    if (!update) return;  // sanity check
 
    const QEPvaClient::Update::UpdateKind kind = update->getKind();
+   bool isMetaUpdate;
 
    switch (kind) {
       case QEPvaClient::Update::ukConnection:
@@ -969,16 +978,22 @@ void QEPvaClient::processUpdate (QEPvaClient::Update* update)
          this->pvData = update->getPvData ();
          this->pvType = update->getPvType ();
 
-         // Assign other items.
+         // Assign meta data items.
+         // Note: alarm and timeStamp data does not require is meta data consideration.
          //
+         isMetaUpdate = false;   // hypothesize not a meta data update.
+
          this->alarm.assign (update->alarm);
          this->timeStamp.assign (update->timeStamp);
-         this->display.assign (update->display);
-         this->control.assign (update->control);
-         this->valueAlarm.assign (update->valueAlarm);
-         this->enumeration.assign (update->enumeration);
+         this->display.assign (update->display, isMetaUpdate);
+         this->control.assign (update->control, isMetaUpdate);
+         this->valueAlarm.assign (update->valueAlarm, isMetaUpdate);
+         this->enumeration.assign (update->enumeration, isMetaUpdate);
 
-         emit dataUpdated (this->firstUpdate);
+         // The first post connection update is always considered
+         // a meta data update.
+         //
+         emit dataUpdated (this->firstUpdate || isMetaUpdate);
          this->firstUpdate = false;
          break;
 

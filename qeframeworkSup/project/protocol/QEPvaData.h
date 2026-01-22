@@ -3,7 +3,7 @@
  *  This file is part of the EPICS QT Framework, initially developed at the
  *  Australian Synchrotron.
  *
- *  SPDX-FileCopyrightText: 2018-2025 Australian Synchrotron
+ *  SPDX-FileCopyrightText: 2018-2026 Australian Synchrotron
  *  SPDX-License-Identifier: LGPL-3.0-only
  *
  *  Author:     Andrew Starritt
@@ -61,9 +61,10 @@ public:
       explicit Enumerated ();
       ~Enumerated ();
 
-      // Assign the members of other to this intsance.
+      // Assign the members of other to this instance.
+      // isMetaUpdate indicates if this is a meta data update.
       //
-      void assign (const Enumerated& other);
+      void assign (const Enumerated& other, bool& isMetaUpdate);
 
       // Extract field data if available and return if successful extracted.
       // If fails, class instance is interdeminate.
@@ -123,14 +124,18 @@ public:
    public:
       explicit Display ();
       ~Display ();
-      void assign (const Display& other);
+
+      void assign (const Display& other, bool& isMetaUpdate);
 
       // Extract display field from the pv data if available and then populate
       // the limitLow, limitHigh, description etc. class instance members.
       // The function returns true if all data is successfully extracted.
       // If it fails, class instance is interdeminate.
+      // Note, some display substructures are different (e.g. NTNDArray) so
+      // we also need the pv identity, e.g. "epics:nt/NTNDArray:1.0", to
+      // fine tune what is extracted from the display structure.
       //
-      bool extract (const PVStructureConstPtr& pv);
+      bool extract (const PVStructureConstPtr& pv, const QString& identity);
 
       bool isDefined;
       double limitLow;
@@ -147,7 +152,8 @@ public:
    public:
       explicit Control ();
       ~Control ();
-      void assign (const Control& other);
+
+      void assign (const Control& other, bool& isMetaUpdate);
 
       // Extract control field from the pv data if available and then populate
       // the limitLow, limitHigh and minStep class instance members.
@@ -170,7 +176,8 @@ public:
    public:
       explicit ValueAlarm ();
       ~ValueAlarm ();
-      void assign (const ValueAlarm& other);
+
+      void assign (const ValueAlarm& other, bool& isMetaUpdate);
 
       // Extract valueAlarm field from the pv data if available and then populate
       // the lowAlarmLimit, lowWarningLimit etc. class instance members.
