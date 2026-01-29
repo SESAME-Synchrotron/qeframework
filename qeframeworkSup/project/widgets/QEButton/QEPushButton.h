@@ -598,8 +598,7 @@ private slots:
     void connectionChanged( QCaConnectionInfo& connectionInfo, const unsigned int& variableIndex )
     {
         QEGenericButton::connectionChanged( connectionInfo, variableIndex );
-        if ( this->isEnabled() )
-            this->setEnabled( connectionInfo.isChannelConnected() );
+        this->setEnabled( connectionInfo.isChannelConnected() );
     }
 
     void setButtonText( const QString& text, QCaAlarmInfo& alarmInfo, QCaDateTime& timestamp, const unsigned int& variableIndex ) { setGenericButtonText( text, alarmInfo, timestamp, variableIndex); }
