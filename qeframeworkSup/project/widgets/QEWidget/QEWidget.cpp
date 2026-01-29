@@ -846,11 +846,15 @@ void QEWidget::startGui( const QEActionRequests& request )
    {
       // Build the gui
       // Build it in a new window.
-      QMainWindow* w = new QMainWindow;
+      QMainWindow* w = new QMainWindow( this->getQWidget() );
       QEForm* gui = new QEForm( request.getArguments().first() );
-      if( gui ) {
-         if( gui->readUiFile()) {
+      gui->setResizeContents( false );
+      if( gui )
+      {
+         if( gui->readUiFile())
+         {
             w->setCentralWidget( gui );
+            w->resize(QSize(gui->width(), gui->height()));
             w->show();
          } else {
             delete gui;
