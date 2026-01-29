@@ -91,8 +91,6 @@ void QESimpleShape::setup ()
    this->fillColour = this->getColor (invalid, 255);
    this->edgeAlarmState = QE::Never;
 
-   this->setLedType(Status);
-
    // Use default context menu.
    //
    this->setupContextMenu ();
