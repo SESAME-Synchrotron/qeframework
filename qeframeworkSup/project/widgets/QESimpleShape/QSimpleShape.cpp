@@ -1260,38 +1260,4 @@ bool QSimpleShape::getFlashProperty (const int slot) const
    return result;
 }
 
-//------------------------------------------------------------------------------
-//
-void QSimpleShape::setLedType(LedType type)
-{
-   this->ledType = type;
-   if(type == Status)
-   {
-       this->setColour0Property( QColor(20, 60, 20) );
-       this->setColour1Property( QColor(5, 240, 5) );
-   }
-   else if(type == Error)
-   {
-       this->setColour0Property( QColor(60, 20, 20) );
-       this->setColour1Property( QColor(240, 5, 5) );
-   }
-   else if(type == Warning)
-   {
-       this->setColour0Property( QColor(60, 60, 20) );
-       this->setColour1Property( QColor(240, 240, 5) );
-   }
-   else
-   {
-       this->setColour0Property( QColor(20, 60, 20) );
-       this->setColour1Property( QColor(5, 240, 5) );
-   }
-
-   this->update();
-}
-
-QSimpleShape::LedType QSimpleShape::getLedType() const
-{
-   return this->ledType;
-}
-
 // end
