@@ -525,6 +525,7 @@ bool QEForm::readUiFile()
 
    // Signal the form has finished loading the .ui file. fileLoaded is true if reading the .ui file was successfull.
    // This signal is required since the loading completes in an event.
+   this->ui->setParent( this );
    emit formLoaded( fileLoaded );
 
    return fileLoaded;
