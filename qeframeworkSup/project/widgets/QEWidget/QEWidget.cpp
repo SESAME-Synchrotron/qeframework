@@ -786,23 +786,17 @@ void QEWidget::startGui( const QEActionRequests & request )
       QMainWindow* w = new QMainWindow( this->getQWidget() );
       QEForm* gui = new QEForm( request.getArguments().first(), this->getQWidget() );
       gui->setResizeContents( false );
-      if( gui )
-      {
-         if( gui->readUiFile())
-         {
+      if( gui ) {
+         if( gui->readUiFile()) {
             w->setCentralWidget( gui );
             w->setAttribute( Qt::WA_DeleteOnClose );
             w->resize( QSize(gui->width(), gui->height()) );
             w->show();
-         }
-         else
-         {
+         } else {
             delete gui;
             gui = NULL;
          }
-      }
-      else
-      {
+      } else {
          delete w;
       }
    }
