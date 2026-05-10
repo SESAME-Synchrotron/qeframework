@@ -281,7 +281,7 @@ void QESimpleShape::connectionUpdated (const QEConnectionUpdate& update)
       // using signal dbConnectionChanged.
       //
       this->emitDbConnectionChanged (MAIN_PV_INDEX);
-      this->setEnabled( connectionInfo.isChannelConnected() );
+      this->setEnabled( isConnected );
    }
 
    if (vi == EDGE_PV_INDEX) {
@@ -394,10 +394,10 @@ void QESimpleShape::setShapeValue (const QEVariantUpdate& update)
       this->emitDbValueChanged (MAIN_PV_INDEX);
    }
 
-   if(alarmInfo.getSeverity() == INVALID_ALARM)
+   if(update.alarmInfo.getSeverity() == INVALID_ALARM)
    {
       this->setEdgeWidth(2);
-      this->setEdgeColour(this->getColor (alarmInfo, 255));
+      this->setEdgeColour(this->getColor (update.alarmInfo, 255));
    }
    else
    {
