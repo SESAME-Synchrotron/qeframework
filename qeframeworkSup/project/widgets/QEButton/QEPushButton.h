@@ -594,13 +594,13 @@ private:
 
 private slots:
     // Hand-ball to QEGenericButton.
-    void connectionChanged( QEConnectionUpdate& update )
+    void connectionChanged( const QEConnectionUpdate& update )
     {
         QEGenericButton::connectionChanged( update );
         this->setEnabled( update.connectionInfo.isChannelConnected() );
     }
 
-    void setButtonText( QEStringValueUpdate& update ) { QEGenericButton::setGenericButtonText( update ); }
+    void setButtonText( const QEStringValueUpdate& update ) { QEGenericButton::setGenericButtonText( update ); }
     void userPressed() { QEGenericButton::userPressed(); }
     void userReleased() { QEGenericButton::userReleased(); }
     void userClicked( bool checked ) { QEGenericButton::userClicked( checked ); }
