@@ -594,14 +594,13 @@ private:
 
 private slots:
     // Hand-ball to QEGenericButton.
-    // void connectionChanged( QCaConnectionInfo& connectionInfo, const unsigned int& variableIndex ) { QEGenericButton::connectionChanged( connectionInfo, variableIndex ); }
-    void connectionChanged( QCaConnectionInfo& connectionInfo, const unsigned int& variableIndex )
+    void connectionChanged( QEConnectionUpdate& update )
     {
-        QEGenericButton::connectionChanged( connectionInfo, variableIndex );
-        this->setEnabled( connectionInfo.isChannelConnected() );
+        QEGenericButton::connectionChanged( update );
+        this->setEnabled( update.connectionInfo.isChannelConnected() );
     }
 
-    void setButtonText( const QString& text, QCaAlarmInfo& alarmInfo, QCaDateTime& timestamp, const unsigned int& variableIndex ) { setGenericButtonText( text, alarmInfo, timestamp, variableIndex); }
+    void setButtonText( QEStringValueUpdate& update ) { QEGenericButton::setGenericButtonText( update ); }
     void userPressed() { QEGenericButton::userPressed(); }
     void userReleased() { QEGenericButton::userReleased(); }
     void userClicked( bool checked ) { QEGenericButton::userClicked( checked ); }

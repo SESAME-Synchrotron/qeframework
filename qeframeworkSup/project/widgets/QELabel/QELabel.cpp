@@ -167,8 +167,8 @@ void QELabel::connectionUpdated (const QEConnectionUpdate& update)
    //
    this->emitDbConnectionChanged (vi);
    
-   this->setEnabled( connectionInfo.isChannelConnected() );
-   this->setText( ! connectionInfo.isChannelConnected() ? "N/A" : this->text() );
+   this->setEnabled( update.connectionInfo.isChannelConnected() );
+   this->setText( ! update.connectionInfo.isChannelConnected() ? "N/A" : this->text() );
 }
 
 

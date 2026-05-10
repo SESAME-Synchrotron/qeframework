@@ -131,8 +131,8 @@ void QEGenericEdit::connectionUpdated( const QEConnectionUpdate& update )
    emitDbConnectionChanged( vi );
   
    // Check the option and then update widget's visual status.
-   this->setEnabled( connectionInfo.isChannelConnected() );
-   this->setText( ! connectionInfo.isChannelConnected() ? "N/A" : this->text() );
+   this->setEnabled( update.connectionInfo.isChannelConnected() );
+   this->setText( ! update.connectionInfo.isChannelConnected() ? "N/A" : this->text() );
 }
 
 //------------------------------------------------------------------------------
