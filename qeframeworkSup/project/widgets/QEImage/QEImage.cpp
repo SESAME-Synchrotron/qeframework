@@ -90,6 +90,7 @@ void QEImage::setup()
    initialVertScrollPos = 0;
    initScrollPosSet = false;
 
+   userDefinedBitDepth = false;
    paused = false;
    infoUpdatePaused( paused );
    pauseExternalAction = NULL;
@@ -1115,8 +1116,11 @@ void QEImage::setDataType( const QEStringValueUpdate& update )
       return;
    }
 
-   // Update the depth
-   setBitDepth( value );
+   // Update the depth unless user has explicitly defined a bit depth.
+   //
+   if( !this->userDefinedBitDepth ){
+      setBitDepth( value );
+   }
 
    // Update the image.
    // This is required if image data for an enlarged image arrived before the width and height.
@@ -2998,13 +3002,15 @@ QE::ImageFormatOptions QEImage::getFormatOption()
 }
 
 // Allow user to set the bit depth for Mono video format
+//
 void QEImage::setBitDepth( int bitDepthIn )
 {
    // Ensure bit depth is reasonable
    //
    const unsigned int sanitiedBitDepth = LIMIT (bitDepthIn, 1, 32);
 
-   // Save the option
+   // Flag as user defined and save the option.
+   this->userDefinedBitDepth = true;
    iProcessor.setBitDepth( sanitiedBitDepth );
 }
 
@@ -4899,9 +4905,10 @@ void QEImage::setRegionAutoBrightnessContrast( QPoint point1, QPoint point2 )
    // Translate the corners to match the current flip and roate options
    QRect area = iProcessor.rotateFlipToDataRectangle( point1, point2 );
 
-   // Determine the range of pixel values in the selected area
+   // Determine the range of pixel values in the selected area.
+   //
    unsigned int min, max;
-   iProcessor.getPixelRange( area, &min, &max );
+   iProcessor.getPixelRange( area, min, max );
 
    if( imageDisplayProps )
    {
@@ -4973,6 +4980,7 @@ void QEImage::generateVSlice( int x, unsigned int thickness )
    QString title = QString( "Vertical profile - " )
                    .append( getSubstitutedVariableName( IMAGE_VARIABLE ) )
                    .append( dt.toString(" - dd.MM.yyyy HH:mm:ss.zzz") );
+
    vSliceDisplay->setProfile( &vSliceData,
                               iProcessor.maxPixelValue(),
                               0.0,
@@ -5026,6 +5034,7 @@ void QEImage::generateHSlice( int y, unsigned int thickness )
    QString title = QString( "Horizontal profile - " )
                    .append( getSubstitutedVariableName( IMAGE_VARIABLE ) )
                    .append( dt.toString(" - dd.MM.yyyy HH:mm:ss.zzz") );
+
    hSliceDisplay->setProfile( &hSliceData,
                               0.0,
                               (double)(hSliceData.size()),
@@ -5139,8 +5148,57 @@ void QEImage::generateProfile( QPoint point1, QPoint point2, unsigned int thickn
 
    // Update the profile display
    QDateTime dt = QDateTime::currentDateTime();
-   QString title = QString( "Line profile - " ).append( getSubstitutedVariableName( IMAGE_VARIABLE ) ).append( dt.toString(" - dd.MM.yyyy HH:mm:ss.zzz") );
-   profileDisplay->setProfile( &profileData, 0.0, (double)(profileData.size()), 0.0,  iProcessor.maxPixelValue(), title, point1, point2, thickness );
+   QString title = QString( "Line profile - " )
+                   .append( getSubstitutedVariableName( IMAGE_VARIABLE ) )
+                   .append( dt.toString(" - dd.MM.yyyy HH:mm:ss.zzz") );
+
+   profileDisplay->setProfile( &profileData, 0.0, (double)(profileData.size()),
+                               0.0,  iProcessor.maxPixelValue(), title,
+                               point1, point2, thickness );
+}
+
+//------------------------------------------------------------------------------
+// Conveniance wrapper method to extact the pixel value.
+// Also useufull for 3rd party plugins and display managers.
+//
+int QEImage::getPixelValueFromData (const QPoint& pos) const
+{
+   const int xmax = (int)this->iProcessor.rotatedImageBuffWidth();
+   const int ymax = (int)this->iProcessor.rotatedImageBuffHeight();
+
+   int value;
+
+   // If the pixel is not within the rotated image, return no value.
+   //
+   if ((pos.x() < 0) || (pos.x() >= xmax) ||
+       (pos.y() < 0) || (pos.y() >= ymax)) {
+
+      value = -1;  // Set no-value value.
+
+   } else {
+      // Extract the pixel data from the original image data
+      //
+      const unsigned char* dataPtr = this->iProcessor.getImageDataPtr (pos);
+      if (!dataPtr) {
+         value = -1;  // Set no-value value.
+
+      } else {
+          value = this->iProcessor.getPixelValueFromData (dataPtr);
+      }
+   }
+
+   return value;
+}
+
+//------------------------------------------------------------------------------
+//
+void QEImage::getFlipAndRotation (bool& horizontalFlip,
+                                  bool& verticalFlip,
+                                  QE::RotationOptions& rotation) const
+{
+   horizontalFlip = this->iProcessor.getFlipHoz();
+   verticalFlip = this->iProcessor.getFlipVert();
+   rotation = this->iProcessor.getRotation();
 }
 
 //=================================================================================================
@@ -5153,19 +5211,18 @@ void QEImage::currentPixelInfo( QPoint pos )
       return;
    }
 
+   const int value = this->getPixelValueFromData( pos );
+
    // If the pixel is not within the image, display nothing
-   QString s;
-   if( pos.x() < 0 || pos.y() < 0 || pos.x() >= (int)iProcessor.rotatedImageBuffWidth() || pos.y() >= (int)iProcessor.rotatedImageBuffHeight() )
+   if( value < 0 )
    {
-      infoUpdatePixel();
+      this->infoUpdatePixel();
    }
 
    // If the pixel is within the image, display the pixel position and value
    else
    {
-      // Extract the pixel data from the original image data
-      int value = iProcessor.getPixelValueFromData( iProcessor.getImageDataPtr( pos ) );
-      infoUpdatePixel( pos, value );
+      this->infoUpdatePixel( pos, value );
    }
 }
 

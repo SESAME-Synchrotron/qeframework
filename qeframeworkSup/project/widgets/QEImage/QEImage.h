@@ -534,6 +534,16 @@ public:
     //
     void resetBrightnessContrast();
 
+    //
+    //
+    int getPixelValueFromData (const QPoint& pos) const;
+
+    //
+    //
+    void getFlipAndRotation (bool& horizontalFlip,
+                             bool& verticalFlip,
+                             QE::RotationOptions& rotation) const;
+
 protected:
     QEStringFormatting stringFormatting;     // String formatting options.
     QEIntegerFormatting integerFormatting;   // Integer formatting options.
@@ -832,6 +842,7 @@ private:
     void presentControls();
 
     bool displayMarkups;
+    bool userDefinedBitDepth;
 
     QString name;                              // Widget unique name for dislay and idetification purpose
 
